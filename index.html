@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asisten Guru Asep Saefullah - Solusi Cerdas Pengajar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        color: rgb(20, 20, 20);
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; 
+      }
+      
+      /* PRINT & PDF CONFIGURATION (PROFESIONAL MODE) */
+      @media print {
+        @page {
+          size: A4;
+          margin: 15mm 20mm 15mm 20mm; /* Atas/Bawah 1.5cm, Kiri/Kanan 2cm */
+        }
+        
+        body, html {
+          background: white;
+          color: black;
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .no-print { 
+          display: none !important; 
+        }
+
+        /* Force Black Borders for Professional Document Look */
+        table, th, td {
+          border-color: #000 !important;
+          border-width: 1px !important;
+        }
+
+        /* Ensure texts are legible and standard size */
+        p, li, td, th {
+          font-size: 11pt !important;
+          line-height: 1.5 !important;
+          color: #000 !important;
+        }
+
+        h1 { font-size: 16pt !important; color: #000 !important; border-bottom: 2px solid #000 !important; }
+        h2 { font-size: 14pt !important; color: #000 !important; background: none !important; border-left: none !important; border-bottom: 1px solid #000 !important; padding: 0 !important; margin-top: 1.5em !important; }
+        h3 { font-size: 12pt !important; color: #000 !important; margin-top: 1em !important; }
+
+        /* Page Break Management */
+        table { page-break-inside: auto; }
+        tr    { page-break-inside: avoid; page-break-after: auto; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        
+        .page-break { page-break-before: always; }
+
+        /* Hide UI Elements */
+        ::-webkit-scrollbar { display: none; }
+        .max-w-6xl, .max-w-4xl, .max-w-7xl, .prose {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        
+        /* Remove background colors for print cleanliness */
+        .bg-slate-50, .bg-blue-50, .bg-white {
+            background-color: transparent !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
+    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "html-docx-js-typescript": "https://esm.sh/html-docx-js-typescript@0.1.5",
+    "file-saver": "https://esm.sh/file-saver@2.0.5"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-50 text-[rgb(20,20,20)] antialiased">
+    <div id="root"></div>
+  </body>
+</html>
