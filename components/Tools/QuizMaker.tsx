@@ -175,25 +175,28 @@ export const QuizMaker: React.FC = () => {
         <meta charset="UTF-8">
         <title>Soal Latihan - ${formData.subject}</title>
         <style>
-          @page { size: A4; margin: 2cm; }
-          body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; }
+          @page { size: A4; margin: 3cm; } /* 3cm Margin */
+          body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Times New Roman', serif; color: #000; }
           h1 { font-size: 14pt; font-weight: bold; text-align: center; margin-bottom: 1em; text-transform: uppercase; }
-          h2, h3 { font-size: 12pt; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; }
-          p { margin-bottom: 0.5em; text-align: justify; }
-          ul, ol { margin-bottom: 0.5em; padding-left: 24px; }
-          li { margin-bottom: 4px; }
-          blockquote { background-color: #f9f9f9; border-left: 4px solid #ccc; margin: 1em 0; padding: 10px 20px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; }
+          h2 { font-size: 12pt; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; }
+          h3 { font-size: 12pt; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+          p, li, div, span { margin-bottom: 0.5em; text-align: justify; font-size: 12pt; font-family: 'Times New Roman', serif; }
+          ul, ol { margin-bottom: 0.5em; padding-left: 24px; font-size: 12pt; font-family: 'Times New Roman', serif; }
+          li { margin-bottom: 4px; font-size: 12pt; }
+          blockquote { background-color: #f9f9f9; border-left: 4px solid #ccc; margin: 1em 0; padding: 10px 20px; font-size: 12pt; font-family: 'Times New Roman', serif; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-family: 'Times New Roman', serif; }
+          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; font-size: 12pt; font-family: 'Times New Roman', serif; }
           th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
         </style>
       </head>
       <body>${contentHtml}</body></html>`;
 
     try {
+      // 3cm approx 1701 twips
       const blob = await asBlob(htmlString, {
         orientation: 'portrait',
-        margins: { top: 720, right: 720, bottom: 720, left: 720 } 
+        margins: { top: 1701, right: 1701, bottom: 1701, left: 1701 } 
       });
       saveAs(blob, `Soal_${formData.subject}_${formData.topic.replace(/\s+/g, '_')}.docx`);
     } catch (error) {
@@ -485,7 +488,7 @@ export const QuizMaker: React.FC = () => {
                     </div>
                 
                     <div id="quiz-result" className="relative">
-                        <div className="bg-white text-slate-900 shadow-2xl shadow-slate-200/50 p-[2.5cm] min-h-[29.7cm] mx-auto rounded-sm print:shadow-none print:p-0 w-full max-w-[21cm]">
+                        <div className="bg-white text-slate-900 shadow-2xl shadow-slate-200/50 p-[30mm] min-h-[29.7cm] mx-auto rounded-sm print:shadow-none print:p-0 w-full max-w-[21cm]">
                              <MarkdownRenderer content={result} />
                         </div>
                         <div className="absolute inset-0 pointer-events-none rounded-sm ring-1 ring-black/5"></div>

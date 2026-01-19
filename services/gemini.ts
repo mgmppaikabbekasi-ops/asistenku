@@ -19,7 +19,8 @@ export const generateContent = async (
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        systemInstruction: systemInstruction || "Anda adalah asisten AI profesional untuk guru di Indonesia. Gunakan Markdown murni. DILARANG KERAS MENGGUNAKAN HTML (Tag <table>, <tr>, <br>, <div>, dll). Gunakan format tabel Markdown standard.",
+        // Updated instruction: Strict usage of <br> only INSIDE tables
+        systemInstruction: systemInstruction || "Anda adalah asisten AI profesional. Gunakan format Markdown yang valid. DILARANG menggunakan Block Code (```). Gunakan tag HTML <br> HANYA untuk baris baru DI DALAM sel tabel. Gunakan enter/newline biasa untuk di luar tabel.",
         temperature: 0.7,
       },
     });
@@ -33,182 +34,170 @@ export const generateContent = async (
 
 export const generateRPP = async (data: any) => {
   const includeRubricInstruction = data.includeRubric 
-    ? "WAJIB: Buatkan Tabel Rubrik Penilaian Lengkap (Skor 1-4) di bagian lampiran setelah Asesmen." 
+    ? "WAJIB: Buatkan Tabel Rubrik Penilaian Lengkap (Skor 1-4) di bagian lampiran setelah Refleksi." 
     : "";
 
   const tpInstruction = data.specificTP
     ? `Gunakan Tujuan Pembelajaran (TP) berikut secara persis: "${data.specificTP}"`
     : `Karena pengguna tidak mengisi TP, **BUATKAN Tujuan Pembelajaran (TP)** yang spesifik, relevan, dan terukur (ABCD) secara otomatis berdasarkan topik "${data.topic}".`;
 
-  const customAssessmentInstruction = data.customAssessments && data.customAssessments.length > 0
-    ? `Tambahkan juga kolom/kategori asesmen berikut ini ke dalam tabel ASESMEN PEMBELAJARAN: ${data.customAssessments.join(', ')}.`
-    : "";
-
-  const meetingDetailsStr = data.meetings.map((m: any, i: number) => 
-    `Pertemuan ${i+1}: Metode "${m.method || data.method || 'Variatif'}", Fokus Kegiatan: "${m.activity || 'Sesuai alur standar'}"`
-  ).join(', ');
-
-  const documentTitle = data.title || "Rencana Pembelajaran Mendalam (RPM)";
-  
   const studentDataContext = data.studentData 
     ? `**KONTEKS PERSONALISASI SISWA (PENTING):**\nSesuaikan strategi, bahasa, dan contoh pembelajaran berdasarkan profil siswa berikut: "${data.studentData}".` 
     : "";
   
   const curriculumContext = data.curriculum ? `Gunakan struktur dan istilah sesuai **${data.curriculum}**.` : "";
 
-  // Logic for Core Activity Model with Integrated Pedagogical Principles
-  const coreActivityInstruction = data.coreActivityModel === 'tar'
-    ? `Untuk bagian KEGIATAN INTI, **WAJIB** gunakan format poin di dalam kolom 'Deskripsi Kegiatan' yang secara eksplisit mengintegrasikan alur TAR dengan prinsip **Berkesadaran, Bermakna, Menggembirakan**:
-       1. **Memahami (Telaah/Konsep) - Berkesadaran**: (Isi kegiatan siswa yang membangun fokus/mindfulness saat menelaah konsep...)
-       2. **Mengaplikasi (Praktek/Diskusi) - Bermakna**: (Isi kegiatan siswa yang kontekstual dengan kehidupan nyata...)
-       3. **Merefleksi (Simpul/Evaluasi) - Menggembirakan**: (Isi kegiatan refleksi yang positif, apresiatif, dan menyenangkan...)`
-    : `Untuk bagian KEGIATAN INTI, susun langkah pembelajaran yang mengintegrasikan prinsip **Berkesadaran, Bermakna, dan Menggembirakan** ke dalam fase **Memahami, Mengaplikasi, dan Merefleksi**:
-       - Fase **Memahami** harus mencerminkan prinsip **Berkesadaran**.
-       - Fase **Mengaplikasi** harus mencerminkan prinsip **Bermakna**.
-       - Fase **Merefleksi** harus mencerminkan prinsip **Menggembirakan**.
-       - Gunakan simbol bullet (•) untuk poin-poin agar rapi.`;
+  // Generate Dynamic Meetings Prompt with DEEP LEARNING (Berkesadaran, Bermakna, Menggembirakan) & TAR Flow
+  const meetingsPrompt = data.meetings.map((meeting: any, index: number) => {
+    return `
+    #### PERTEMUAN KE-${index + 1}
+    **Fokus:** ${meeting.activity || data.topic}
+    
+    **Pendekatan:** Pembelajaran Mendalam (Deep Learning)
 
-  // Date formatting
-  const formattedDate = data.date 
-    ? new Date(data.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
-    : new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    | Tahapan Pembelajaran | Deskripsi Kegiatan (Berkesadaran, Bermakna, Menggembirakan) | Waktu |
+    | :--- | :--- | :---: |
+    | **PENDAHULUAN** <br> *(Berkesadaran & Bermakna)* | • **Berkesadaran (Mindfulness):** Guru menyapa hangat, teknik STOP sejenak/cek perasaan siswa agar hadir utuh.<br>• **Bermakna (Apersepsi):** Pertanyaan pemantik yang menghubungkan ${data.topic} dengan kehidupan nyata siswa.<br>• **Tujuan:** Menyampaikan tujuan pembelajaran yang jelas. | 10' |
+    | **INTI** <br> *(Menggembirakan - Telaah & Aplikasi)* | • **Telaah (Memahami):** Siswa mengeksplorasi konsep ${data.topic} melalui media menarik/cerita (bukan ceramah panjang).<br>• **Aplikasi (Menerapkan):** Siswa melakukan aktivitas nyata/kolaborasi yang *menggembirakan* (Games/Proyek/Diskusi Aktif) sesuai metode ${meeting.method || 'Variatif'}.<br>• **Elaborasi:** Guru memfasilitasi pemahaman lebih dalam. | (Sisa) |
+    | **PENUTUP** <br> *(Merefleksikan / Simpulan)* | • **Rumuskan (Refleksi):** Siswa diajak menyimpulkan poin kunci dan merefleksikan makna pembelajaran bagi dirinya.<br>• **Apresiasi:** Umpan balik positif dan doa penutup. | 10' |
+    `;
+  }).join('\n\n');
+
+  const documentTitle = "RENCANA PEMBELAJARAN MENDALAM (RPM)";
 
   const prompt = `
-    Buatkan dokumen **${documentTitle}** yang persis mengikuti struktur di bawah ini.
+    Buatkan dokumen **${documentTitle}** yang persis mengikuti struktur template PDF RPM.
     ${curriculumContext}
     
     **DATA INPUT:**
     - Sekolah: ${data.schoolName || "..................."}
-    - Guru: ${data.teacherName || "..................."} (NIP: ${data.teacherNIP || "..................."})
+    - Guru: ${data.teacherName || "..................."}
     - Mapel: ${data.subject}
     - Semester: ${data.semester || "Ganjil/Genap"}
     - Kelas: ${data.grade}
     - Topik: ${data.topic}
-    - Alokasi Waktu Harian: ${data.duration}
-    - Detail Pertemuan: ${meetingDetailsStr}
+    - Alokasi Waktu Total: ${data.duration}
+    - Jumlah Pertemuan: ${data.meetingCount}
     
     ${studentDataContext}
-
     ${tpInstruction}
-    ${coreActivityInstruction}
 
-    **ATURAN FORMAT (ANTI HTML & RAPI):**
-    1. **HANYA GUNAKAN TABEL MARKDOWN**. Dilarang menggunakan tag HTML seperti <table>, <tr>, <td>, <br>, <center>.
-    2. **FORMAT TANDA TANGAN**: Gunakan tabel markdown 2 kolom untuk tanda tangan. Tambahkan baris JABATAN di bawah NIP.
-    3. **POIN DALAM TABEL**: Gunakan bullet (•) atau angka (1.) secara langsung.
-    4. **JANGAN GUNAKAN ATRIBUT WIDTH/ALIGN**. Biarkan renderer yang mengatur lebar.
+    **INSTRUKSI PEDAGOGIS (PENTING):**
+    Gunakan prinsip **Pembelajaran Mendalam (Deep Learning)** pada tabel Pengalaman Belajar:
+    1. **Berkesadaran (Mindful)**: Siswa dan guru hadir utuh (mindfulness) di awal.
+    2. **Bermakna (Meaningful)**: Pembelajaran relevan dengan kehidupan siswa.
+    3. **Menggembirakan (Joyful)**: Kegiatan inti harus seru, interaktif, dan positif.
     
-    **STRUKTUR OUTPUT:**
+    Gunakan Alur **TAR** pada deskripsi kegiatan:
+    - **T**elaah (Eksplorasi/Memahami)
+    - **A**plikasi (Menerapkan/Praktik)
+    - **R**umuskan (Refleksi/Simpulan)
+
+    **INSTRUKSI FORMAT TABEL:**
+    1. **Format**: Gunakan Markdown Table standard.
+    2. **Ganti Baris**: Gunakan tag HTML **<br>** untuk membuat baris baru HANYA di dalam satu sel tabel. JANGAN gunakan <br> di luar tabel.
+    3. **Alignment**:
+       - Tabel **PENGALAMAN BELAJAR**: Kolom 1 (Tahapan - Rata Kiri), Kolom 2 (Deskripsi - Rata Kiri), Kolom 3 (Waktu - Rata Tengah).
+    
+    **STRUKTUR OUTPUT MARKDOWN (WAJIB URUT 1-6):**
 
     # ${documentTitle}
 
     ### 1. IDENTITAS
-    | Komponen | Keterangan |
+    | Atribut | Keterangan |
     | :--- | :--- |
     | **Nama Satuan Pendidikan** | ${data.schoolName || "..................."} |
     | **Nama Guru** | ${data.teacherName || "..................."} |
-    | **NIP** | ${data.teacherNIP || "-"} |
     | **Mata Pelajaran** | ${data.subject} |
-    | **Kelas** | ${data.grade} |
+    | **Kelas / Fase** | ${data.grade} |
     | **Semester** | ${data.semester || "...."} |
-    | **Alokasi Waktu Harian** | ${data.duration} (${data.meetingCount} Pertemuan) |
+    | **Alokasi Waktu** | ${data.duration} |
+    | **Jumlah Pertemuan** | ${data.meetingCount} Pertemuan |
 
     ### 2. IDENTIFIKASI
-    | Komponen | Deskripsi |
+    | Komponen | Uraian Detail |
     | :--- | :--- |
-    | **Kesiapan Peserta Didik** | • **Pengetahuan awal**: (Isi detail) - • **Minat**: (Isi detail) |
-    | **Siswa Aktif** | (Deskripsikan profil siswa yang aktif dalam pembelajaran. Contoh: "5 Siswa sangat antusias bertanya," "Kelompok B selalu mendominasi diskusi," atau "Siswa kinestetik cenderung bergerak saat praktek.") |
-    | **Materi Pelajaran** | • **Faktual**: (Isi) - • **Konseptual**: (Isi) - • **Prosedural**: (Isi) - • **Metakognitif**: (Isi) |
-    | **Dimensi Profil Lulusan (DPL)** | (Sebutkan DPL 1-8 yang relevan) |
+    | **Kesiapan Peserta Didik** | **Pengetahuan Awal:** <br> • (Analisis kemampuan prasyarat) <br><br> **Minat & Gaya Belajar:** <br> • (Visual/Auditori/Kinestetik & Ketertarikan siswa) |
+    | **Materi Pelajaran** | **Jenis Pengetahuan:** <br> • Faktual: (Fakta materi) <br> • Konseptual: (Konsep/Definisi) <br> • Prosedural: (Langkah/Cara) <br> • Metakognitif: (Refleksi) |
+    | **Dimensi Profil Lulusan** | • DPL 1: Keimanan dan Ketaqwaan <br> • DPL 2: Kewargaan/Kebinekaan <br> • DPL 3: Penalaran Kritis <br> • DPL 4: Kreativitas <br> • DPL 5: Kolaborasi <br> • DPL 6: Kemandirian |
+    | **Capaian Pembelajaran** | (Isi CP lengkap sesuai kurikulum) |
 
     ### 3. DESAIN PEMBELAJARAN
-    | Komponen | Deskripsi |
+    | Komponen | Uraian Perencanaan |
     | :--- | :--- |
-    | **Capaian Pembelajaran (CP)** | (Isi CP) |
-    | **Tujuan Pembelajaran (TP)** | (Isi TP yang telah dibuat) |
+    | **Tujuan Pembelajaran** | (Isi TP yang spesifik dan terukur - ABCD) |
+    | **Lintas Disiplin Ilmu** | (Koneksi dengan mapel lain, misal: Bahasa, Matematika) |
     | **Topik Pembelajaran** | ${data.topic} |
-    | **Lintas Disiplin Ilmu** | (Hubungan dengan mapel lain) |
-    | **Praktik Pedagogis** | ${data.method || "Inkuiri, PBL, PjBL"} |
-    | **Kemitraan Pembelajaran** | (Orang Tua, Pakar, Komunitas) |
-    | **Lingkungan Pembelajaran** | (Fisik, Virtual, Budaya) |
-    | **Pemanfaatan Digital** | (Aplikasi/Platform yang dipakai) |
+    | **Praktik Pedagogis** | Pembelajaran Mendalam (Berkesadaran, Bermakna, Menggembirakan) |
+    | **Kemitraan Pembelajaran** | (Misal: Orang tua, Pakar tamu, Lingkungan sekitar) |
+    | **Lingkungan Pembelajaran** | (Misal: Ruang Kelas, Perpustakaan, Halaman Sekolah) |
+    | **Pemanfaatan Digital** | (Misal: Quizizz, Canva, Video Youtube, Google Classroom) |
 
     ### 4. PENGALAMAN BELAJAR
-    (Buat tabel ini untuk SETIAP pertemuan).
+    (Rincian Kegiatan untuk **${data.meetingCount} Pertemuan** dengan Alur TAR)
 
-    **PERTEMUAN 1**
-    | Tahap | Deskripsi Kegiatan (Berkesadaran, Bermakna, Menggembirakan) | Estimasi Waktu |
-    | :--- | :--- | :--- |
-    | **AWAL** | (Sapaan, Doa, "Check-in" emosi siswa/Mindfulness, Pertanyaan Pemantik) | 10 menit |
-    | **INTI** | ${data.coreActivityModel === 'tar' ? '1. **Memahami (Berkesadaran)**: ... \n2. **Mengaplikasi (Bermakna)**: ... \n3. **Merefleksi (Menggembirakan)**: ...' : '(Isi langkah kegiatan inti dengan poin-poin yang interaktif dan berprinsip pedagogis)'} | ... menit |
-    | **PENUTUP** | (Refleksi bermakna, Apresiasi, Doa penutup) | 10 menit |
-
-    *(Ulangi Struktur Tabel PENGALAMAN BELAJAR di atas untuk Pertemuan selanjutnya sesuai input)*
+    ${meetingsPrompt}
 
     ### 5. ASESMEN PEMBELAJARAN
-    | Indikator / Tahapan | Indikator Penilaian (Rinci & Spesifik) | Asesmen Formatif (Awal & Proses) | Asesmen Sumatif (Akhir) |
-    | :--- | :--- | :--- | :--- |
-    | **Bentuk & Instrumen** | (Tuliskan indikator ketercapaian secara rinci, misal: 'Siswa mampu menjelaskan...') | **Teknik:** (Misal: Observasi, Lisan) <br> **Instrumen:** (Misal: Ceklis, Rubrik) | **Teknik:** (Misal: Tes Tulis) <br> **Instrumen:** (Misal: Soal PG, Uraian) |
-    | **Keterangan** | *Kriteria keberhasilan minimum.* | *Dilakukan selama pembelajaran.* | *Dilakukan di akhir untuk nilai.* |
-    ${customAssessmentInstruction ? `| **Tambahan** | (Indikator untuk ${data.customAssessments.join(', ')}) | ${data.customAssessments.join(', ')} | (Isi keterangan) |` : ''}
+    | Jenis Asesmen | Teknik Penilaian | Instrumen |
+    | :--- | :--- | :--- |
+    | **Asesmen Awal** | Lisan / Kuis Singkat | Daftar Pertanyaan Pemantik |
+    | **Formatif (Proses)** | Observasi Kinerja (Saat Aplikasi) | Rubrik Checklist / Catatan Anekdot |
+    | **Sumatif (Akhir)** | Tes Tertulis / Produk | Soal Uraian / Rubrik Penilaian Produk |
 
-    ### 6. REFLEKSI GURU
-    | Pertanyaan Refleksi | Catatan Guru (Diisi Setelah Pembelajaran) |
+    ### 6. REFLEKSI GURU & CATATAN
+    | Komponen | Catatan Refleksi |
     | :--- | :--- |
-    | Apakah tujuan pembelajaran tercapai? | ....................................................... |
-    | Apakah prinsip berkesadaran & bermakna muncul? | ....................................................... |
-    | Kesulitan apa yang dialami peserta didik? | ....................................................... |
-    | Langkah perbaikan untuk pertemuan berikutnya? | ....................................................... |
+    | **Keberhasilan** | (Apa yang membuat siswa gembira dan paham?) |
+    | **Kendala** | (Apa tantangan dalam menjaga kesadaran/fokus siswa?) |
+    | **Tindak Lanjut** | (Apa perbaikan untuk pertemuan berikutnya?) |
 
     ${includeRubricInstruction}
-
-    ---
-    
-    Mengetahui,
-    
-    | Kepala Sekolah | Guru Mata Pelajaran |
-    | :--- | :--- |
-    | (Tanda Tangan) | ${data.place ? data.place + ', ' : ''}${formattedDate} |
-    | | |
-    | **${data.principalName || ".............................."}** | **${data.teacherName || ".............................."}** |
-    | NIP. ${data.principalNIP || ".............................."} | NIP. ${data.teacherNIP || ".............................."} |
-    | Jabatan: Kepala Sekolah | Jabatan: Guru Kelas / Mapel |
-    
   `;
-  return generateContent(prompt, "Anda adalah ahli kurikulum dan pedagogi modern. Hasilkan output Markdown yang bersih.");
+  return generateContent(prompt, "Anda adalah ahli kurikulum RPM berbasis Pembelajaran Mendalam (Deep Learning). Output Markdown tabel harus rapi.");
 };
 
 export const regenerateRPPSection = async (data: any, sectionName: string) => {
-  // Simplifikasi prompt untuk regenerasi bagian tertentu
   let specificContext = "";
+  let sectionHeader = "";
   
   if (sectionName.includes("IDENTIFIKASI")) {
-    specificContext = "Fokus pada Kesiapan Peserta Didik, Siswa Aktif, Materi Pelajaran (Faktual-Metakognitif), dan Profil Lulusan.";
+    specificContext = "Format Tabel 2 Kolom: | Komponen | Uraian Detail |. Gunakan tag <br> dan bullet •.";
+    sectionHeader = "### 2. IDENTIFIKASI";
   } else if (sectionName.includes("DESAIN")) {
-    specificContext = "Fokus pada CP, TP, dan elemen desain pembelajaran.";
+    specificContext = "Format Tabel 2 Kolom: | Komponen | Uraian Perencanaan |. Gunakan tag <br> dan bullet •.";
+    sectionHeader = "### 3. DESAIN PEMBELAJARAN";
   } else if (sectionName.includes("PENGALAMAN")) {
-    specificContext = `Fokus pada langkah kegiatan Pertemuan (Awal, Inti, Penutup) yang **Berkesadaran, Bermakna, dan Menggembirakan** serta terintegrasi dengan **Memahami, Mengaplikasi, Merefleksi**. Model inti: ${data.coreActivityModel}`;
+    // Updated context for Experience section to force Deep Learning Principles
+    specificContext = "Buat rincian kegiatan untuk SEMUA PERTEMUAN. Gunakan Prinsip: Berkesadaran, Bermakna, Menggembirakan. Gunakan Alur: Telaah, Aplikasi, Rumuskan. Format Tabel 3 Kolom: | Tahapan Pembelajaran | Deskripsi Kegiatan Guru & Siswa | Alokasi Waktu (Tengah) |. Gunakan tag <br> untuk baris baru dalam sel.";
+    sectionHeader = "### 4. PENGALAMAN BELAJAR";
   } else if (sectionName.includes("ASESMEN")) {
-    specificContext = "Fokus pada tabel Asesmen dengan kolom Indikator Penilaian, Instrumen/Teknik, Formatif, dan Sumatif.";
+    specificContext = "Format Tabel 3 Kolom: | Jenis Asesmen | Teknik | Instrumen |. Gunakan tag <br> dan bullet •.";
+    sectionHeader = "### 5. ASESMEN PEMBELAJARAN";
+  } else if (sectionName.includes("REFLEKSI")) {
+    specificContext = "Format Tabel 2 Kolom: | Komponen | Catatan Refleksi |. Gunakan tag <br>.";
+    sectionHeader = "### 6. REFLEKSI GURU & CATATAN";
+  } else if (sectionName.includes("IDENTITAS")) {
+    specificContext = "Format Tabel 2 Kolom: | Atribut | Keterangan |. Gunakan tag <br>.";
+    sectionHeader = "### 1. IDENTITAS";
   }
 
   const prompt = `
-    Konteks: Sedang membuat RPP untuk Mapel ${data.subject}, Topik ${data.topic}, Kelas ${data.grade}.
-    ${data.curriculum ? `Kurikulum: ${data.curriculum}` : ''}
-    ${data.studentData ? `Data Siswa Khusus: ${data.studentData}` : ''}
+    Konteks: Sedang membuat RPP RPM untuk Mapel ${data.subject}, Topik ${data.topic}, Kelas ${data.grade}.
     
-    TUGAS: Buat ulang HANYA BAGIAN **${sectionName}** dalam format Markdown yang valid.
+    TUGAS: Buat ulang HANYA BAGIAN **${sectionName}** dalam format Tabel Markdown yang diminta.
     ${specificContext}
     
-    Gunakan format Tabel Markdown. Jangan berikan pembuka/penutup basa-basi, langsung isi konten bagian tersebut.
-    Header bagian harus persis: ### ${sectionName}
-    Isi konten harus lengkap.
+    ATURAN: Gunakan tag HTML <br> untuk baris baru di dalam sel tabel. DILARANG menggunakan [br] atau list markdown standard (-, 1.). Gunakan alignment tabel yang benar (:--- untuk kiri, :---: untuk tengah).
+    Header bagian harus persis: ${sectionHeader}
   `;
 
-  return generateContent(prompt, "Anda adalah ahli kurikulum. Output hanya bagian yang diminta dalam format Markdown.");
+  return generateContent(prompt, "Anda adalah ahli kurikulum RPM berbasis Pembelajaran Mendalam. Output hanya bagian yang diminta dalam format Markdown Tabel yang rapi dengan tag <br>.");
 };
 
 export const generateQuiz = async (data: any) => {
+  // ... (Quiz generation logic remains unchanged)
+  // Re-exporting unchanged logic to keep file consistency
   const getFormatInstruction = (type: string) => {
     switch (type) {
       case "Pilihan Ganda":
@@ -274,7 +263,6 @@ export const generateQuiz = async (data: any) => {
     }
   };
 
-  // Build prompts for all sections
   const sectionsPrompt = data.sections.map((sec: any, idx: number) => `
     ### BAGIAN ${idx + 1}: ${sec.type.toUpperCase()}
     - Jumlah Soal: ${sec.questionCount}
@@ -282,10 +270,9 @@ export const generateQuiz = async (data: any) => {
     - Instruksi Khusus: ${getFormatInstruction(sec.type)}
   `).join('\n\n');
 
-  // Logic for automatic syllabus generation if input is empty
   const syllabusContext = data.syllabus 
     ? `Gunakan Referensi Kisi-kisi dari Pengguna: "${data.syllabus}"` 
-    : `Karena pengguna tidak memberikan kisi-kisi, **BUATKAN OTOMATIS** kisi-kisi yang relevan dengan topik "${data.topic}" dan jenjang ${data.grade}.`;
+    : `Karena pengguna tidak mengisi kisi-kisi, **BUATKAN OTOMATIS** kisi-kisi yang relevan dengan topik "${data.topic}" dan jenjang ${data.grade}.`;
 
   const syllabusInstruction = `
     **BAGIAN 1: KISI-KISI PENULISAN SOAL (WAJIB ADA DI AWAL)**
@@ -337,17 +324,16 @@ export const generateQuiz = async (data: any) => {
 };
 
 export const generateRubric = async (data: any) => {
+  // ... (Rubric generation logic remains unchanged)
   const subject = data.subject || "Umum";
   const topic = data.topic || "Tugas Standar";
   const grade = data.grade || "Umum";
   const rubricCount = data.rubricCount || 1;
 
-  // Build string of requests based on array of types
   const tasksInstruction = data.rubricItems.map((item: any, i: number) => 
     `Rubrik ke-${i+1}: Jenis Tugas "${item.taskType}"`
   ).join('\n');
 
-  // Logic to force example if data is sparse
   const isFallbackNeeded = !data.subject && !data.topic;
   
   const fallbackInstruction = isFallbackNeeded 
@@ -381,9 +367,8 @@ export const generateRubric = async (data: any) => {
 };
 
 export const generateLKPD = async (data: any) => {
+  // ... (LKPD generation logic remains unchanged)
   const activityCount = data.activityCount || 1;
-  
-  // Build string of requests based on array of types
   const activitiesInstruction = data.activities.map((item: any, i: number) => 
     `Aktivitas ke-${i+1}: Jenis "${item.type}"`
   ).join('\n');
@@ -419,9 +404,8 @@ export const generateLKPD = async (data: any) => {
 };
 
 export const generateMaterials = async (data: any) => {
+  // ... (Materials generation logic remains unchanged)
   const materialCount = data.materialCount || 1;
-
-  // Build string of requests based on array of styles
   const stylesInstruction = data.materialItems.map((item: any, i: number) => 
     `Bagian ke-${i+1}: Gaya Penulisan "${item.style}"`
   ).join('\n');

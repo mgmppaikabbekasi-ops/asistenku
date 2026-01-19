@@ -40,7 +40,8 @@ export const RPPGenerator: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: '', message: '', type: 'success' });
   const [dateError, setDateError] = useState('');
-  const [topicError, setTopicError] = useState(''); // New Validation State
+  const [topicError, setTopicError] = useState('');
+  const [subjectError, setSubjectError] = useState(''); // New Subject Error State
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   
@@ -166,6 +167,15 @@ export const RPPGenerator: React.FC = () => {
     // Strict Validation
     let hasError = false;
 
+    // Validate Subject
+    if (!formData.subject) {
+        setSubjectError('Mata Pelajaran wajib dipilih.');
+        hasError = true;
+    } else {
+        setSubjectError('');
+    }
+
+    // Validate Topic
     if (!formData.topic || formData.topic.trim() === '') {
         setTopicError('Topik Materi wajib diisi.');
         hasError = true;
@@ -173,6 +183,7 @@ export const RPPGenerator: React.FC = () => {
         setTopicError('');
     }
 
+    // Validate Date
     if (!formData.date) {
         setDateError('Silakan pilih tanggal yang valid');
         // Open signature section if closed
@@ -182,7 +193,7 @@ export const RPPGenerator: React.FC = () => {
     }
 
     if (hasError) {
-        setToastMessage({ title: 'Validasi Gagal', message: 'Mohon lengkapi data yang wajib diisi.', type: 'error' });
+        setToastMessage({ title: 'Validasi Gagal', message: 'Mohon lengkapi data wajib (Mapel, Topik, Tanggal).', type: 'error' });
         setShowToast(true);
         return;
     }
@@ -228,6 +239,7 @@ export const RPPGenerator: React.FC = () => {
             setShowToast(true);
         } else {
             console.error("Could not find section to replace");
+            setToastMessage({ title: 'Gagal', message: 'Format dokumen tidak dikenali.', type: 'error' });
         }
 
     } catch (error) {
@@ -285,7 +297,7 @@ export const RPPGenerator: React.FC = () => {
     const element = document.getElementById('rpp-content');
     if (!element) return;
     const opt = {
-      margin: [15, 20, 15, 20],
+      margin: [30, 30, 30, 30], // 3cm = 30mm
       filename: `${formData.title || 'Modul_Ajar'}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
@@ -298,30 +310,39 @@ export const RPPGenerator: React.FC = () => {
   const handleExportDocx = async () => {
     const element = document.getElementById('rpp-content');
     if (!element) return;
-    const contentHtml = element.innerHTML;
+    
+    // Clone and clean for export (remove regenerate buttons)
+    const clone = element.cloneNode(true) as HTMLElement;
+    const buttons = clone.querySelectorAll('.regenerate-btn');
+    buttons.forEach(btn => btn.remove());
+    
+    const contentHtml = clone.innerHTML;
+    
     const htmlString = `
       <!DOCTYPE html>
       <html lang="id">
       <head>
         <meta charset="UTF-8"><title>${formData.title}</title>
         <style>
-          @page { size: A4; margin: 2cm; }
-          body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; }
+          @page { size: A4; margin: 3cm; }
+          body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Times New Roman', serif; color: #000; }
           h1 { font-size: 14pt; font-weight: bold; text-align: center; margin-bottom: 1em; text-transform: uppercase; }
           h2 { font-size: 12pt; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid #000; padding-bottom: 2px; }
-          h3 { font-size: 11pt; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
-          p { margin-bottom: 0.5em; text-align: justify; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; font-size: 11pt; }
+          h3 { font-size: 12pt; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+          p, li, div, span { margin-bottom: 0.5em; text-align: justify; font-size: 12pt; font-family: 'Times New Roman', serif; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-family: 'Times New Roman', serif; }
+          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; font-size: 12pt; font-family: 'Times New Roman', serif; }
           th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+          .signature-section { margin-top: 30px; page-break-inside: avoid; }
+          .signature-table, .signature-table td { border: none !important; }
           .bg-slate-50, .bg-blue-50 { background-color: transparent; }
-          /* Hide regenerate buttons in Docx/Print */
-          .regenerate-btn { display: none; }
         </style>
       </head>
       <body>${contentHtml}</body></html>`;
     try {
-      const blob = await asBlob(htmlString, { orientation: 'portrait', margins: { top: 720, right: 720, bottom: 720, left: 720 } });
+      // 3cm approx 1701 twips (1 cm = 567 twips)
+      const blob = await asBlob(htmlString, { orientation: 'portrait', margins: { top: 1701, right: 1701, bottom: 1701, left: 1701 } });
       saveAs(blob, `${formData.title || 'Modul_Ajar'}.docx`);
     } catch (error) { console.error("Export Error", error); }
   };
@@ -336,6 +357,7 @@ export const RPPGenerator: React.FC = () => {
                  <button 
                     onClick={() => handleRegenerateSection(sectionTitle, fullHeader)}
                     disabled={!!regeneratingSection}
+                    data-html2canvas-ignore="true"
                     className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2 py-1 rounded-bl-lg rounded-tr-lg text-[10px] font-bold border border-indigo-200 transition-all regenerate-btn shadow-sm"
                     title="Buat ulang bagian ini saja"
                  >
@@ -350,8 +372,10 @@ export const RPPGenerator: React.FC = () => {
 
   const renderSelectiveContent = () => {
     if (!result) return null;
+    
+    // Improved Parsing Logic for RPM Structure (1-6)
     const parts = result.split(/(?=### \d\.)/);
-    const findPart = (keyword: string) => parts.find(p => p.toLowerCase().includes(keyword.toLowerCase())) || "";
+    const findPart = (keyword: string) => parts.find(p => p.toUpperCase().includes(keyword.toUpperCase())) || "";
 
     const headerPart = parts[0].includes("### 1.") ? "" : parts[0]; 
     const identityPart = findPart("1. IDENTITAS");
@@ -370,18 +394,13 @@ export const RPPGenerator: React.FC = () => {
         experiencePart = foundBlock ? sectionHeader + "\n" + foundBlock : sectionHeader + `\n\n> *Data untuk Pertemuan ${activeMeetingFilter} tidak ditemukan.*`;
     }
 
-    let cleanReflectionPart = reflectionPart;
-    let footerPart = "";
-    if (result.includes("Mengetahui,")) {
-        const splitByFooter = result.split("Mengetahui,");
-        footerPart = "Mengetahui," + splitByFooter[splitByFooter.length - 1];
-        if (cleanReflectionPart.includes("Mengetahui,")) {
-             cleanReflectionPart = cleanReflectionPart.split("Mengetahui,")[0].replace(/---\s*$/, '');
-        }
-    }
+    // Format Date for signature
+    const formattedDate = formData.date 
+        ? new Date(formData.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
+        : new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
     return (
-        <div id="rpp-content" className="bg-white text-slate-900 shadow-2xl shadow-slate-200/50 p-[2.5cm] min-h-[29.7cm] mx-auto rounded-sm print:shadow-none print:p-0 w-full max-w-[21cm]">
+        <div id="rpp-content" className="bg-white text-slate-900 shadow-2xl shadow-slate-200/50 p-[30mm] min-h-[29.7cm] mx-auto rounded-sm print:shadow-none print:p-0 w-full max-w-[21cm]">
             {sectionsToPrint.title && <div className="mb-4"><MarkdownRenderer content={headerPart} /></div>}
             
             {sectionsToPrint.identity && renderSectionWithRegenerate(identityPart, 'identity', '1. IDENTITAS', '### 1. IDENTITAS')}
@@ -394,9 +413,29 @@ export const RPPGenerator: React.FC = () => {
             
             {sectionsToPrint.assessment && renderSectionWithRegenerate(assessmentPart, 'assessment', '5. ASESMEN PEMBELAJARAN', '### 5. ASESMEN')}
             
-            {sectionsToPrint.reflection && renderSectionWithRegenerate(cleanReflectionPart, 'reflection', '6. REFLEKSI GURU', '### 6. REFLEKSI')}
+            {sectionsToPrint.reflection && renderSectionWithRegenerate(reflectionPart, 'reflection', '6. REFLEKSI GURU & CATATAN', '### 6. REFLEKSI')}
             
-            {sectionsToPrint.footer && footerPart && <div className="mt-8 break-inside-avoid"><MarkdownRenderer content={footerPart} /></div>}
+            {/* Custom Footer / Signature Section - Using Table for perfect symmetry in Word/PDF */}
+            {sectionsToPrint.footer && (
+                <div className="mt-12 break-inside-avoid signature-section font-serif">
+                   <table className="w-full border-none signature-table" style={{ width: '100%', borderCollapse: 'collapse', border: 'none', marginTop: '30px', marginBottom: '30px' }}>
+                        <tbody>
+                            <tr style={{ border: 'none' }}>
+                                <td style={{ width: '50%', border: 'none', verticalAlign: 'top', textAlign: 'center', padding: '0 10px' }}>
+                                    <p style={{ marginBottom: '80px', textAlign: 'center' }}>Mengetahui,<br/>Kepala Sekolah</p>
+                                    <p style={{ fontWeight: 'bold', textDecoration: 'underline', textTransform: 'uppercase', textAlign: 'center' }}>{formData.principalName || ".............................."}</p>
+                                    <p style={{ textAlign: 'center' }}>NIP. {formData.principalNIP || ".............................."}</p>
+                                </td>
+                                <td style={{ width: '50%', border: 'none', verticalAlign: 'top', textAlign: 'center', padding: '0 10px' }}>
+                                    <p style={{ marginBottom: '80px', textAlign: 'center' }}>{formData.place ? formData.place + ', ' : ''}{formattedDate}<br/>Guru Mata Pelajaran</p>
+                                    <p style={{ fontWeight: 'bold', textDecoration: 'underline', textTransform: 'uppercase', textAlign: 'center' }}>{formData.teacherName || ".............................."}</p>
+                                    <p style={{ textAlign: 'center' }}>NIP. {formData.teacherNIP || ".............................."}</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                   </table>
+                </div>
+            )}
         </div>
     );
   };
@@ -555,22 +594,26 @@ export const RPPGenerator: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Mata Pelajaran</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Mata Pelajaran <span className="text-red-500">*</span></label>
                                 <select 
-                                    className="w-full rounded-lg border-slate-300 bg-slate-50 border px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                    className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 outline-none ${subjectError ? 'border-red-500 bg-red-50 focus:ring-red-200' : 'border-slate-300 bg-slate-50 focus:ring-indigo-500/20'}`}
                                     value={formData.subject}
-                                    onChange={e => setFormData({...formData, subject: e.target.value})}
+                                    onChange={e => {
+                                        setFormData({...formData, subject: e.target.value});
+                                        if (e.target.value) setSubjectError('');
+                                    }}
                                 >
                                     <option value="">Pilih Mata Pelajaran...</option>
                                     {SUBJECT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                 </select>
+                                {subjectError && <p className="text-[10px] text-red-500 mt-1">{subjectError}</p>}
                             </div>
                         </div>
 
                          <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Alokasi Waktu Harian</label>
-                                <input type="text" required className="w-full rounded-lg border-slate-300 bg-slate-50 border px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" placeholder="Misal: 2 JP x 40 Menit" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
+                                <input type="text" required className="w-full rounded-lg border-slate-300 bg-slate-50 border px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" placeholder="Contoh: 2 JP x 40 Menit" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Topik Materi <span className="text-red-500">*</span></label>
@@ -592,17 +635,17 @@ export const RPPGenerator: React.FC = () => {
                              <div className="flex items-center gap-2 mb-1.5">
                                 <label className="block text-xs font-bold text-slate-500 uppercase">Model Kegiatan Inti</label>
                                 <div className="relative group">
-                                    <HelpCircle size={14} className="text-slate-400 cursor-help" />
+                                    <HelpCircle size={16} className="text-slate-400 cursor-help" />
                                     <div className="absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                                        <p className="mb-2"><strong>Auto:</strong> AI menyusun langkah standar dengan poin-poin.</p>
-                                        <p><strong>TAR:</strong> Menggunakan alur 3 langkah khas: Telaah (Konsep), Aplikasi (Praktek), Refleksi (Evaluasi).</p>
+                                        <p className="mb-2"><strong className="text-yellow-400">Auto:</strong> AI membuat langkah standar pembelajaran Kurikulum Merdeka.</p>
+                                        <p><strong className="text-yellow-400">TAR:</strong> Alur Rencana Pembelajaran Mendalam: Telaah (Memahami), Aplikasi (Praktik), Refleksi (Simpulan).</p>
                                     </div>
                                 </div>
                              </div>
                              <div className="grid grid-cols-2 gap-2">
                                 <label className={`cursor-pointer rounded-lg border px-3 py-2 text-sm text-center transition-all ${formData.coreActivityModel === 'tar' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                                     <input type="radio" className="hidden" name="coreActivity" value="tar" checked={formData.coreActivityModel === 'tar'} onChange={() => setFormData({...formData, coreActivityModel: 'tar'})} />
-                                    Model TAR
+                                    Model TAR (RPM)
                                 </label>
                                 <label className={`cursor-pointer rounded-lg border px-3 py-2 text-sm text-center transition-all ${formData.coreActivityModel === 'auto' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                                     <input type="radio" className="hidden" name="coreActivity" value="auto" checked={formData.coreActivityModel === 'auto'} onChange={() => setFormData({...formData, coreActivityModel: 'auto'})} />

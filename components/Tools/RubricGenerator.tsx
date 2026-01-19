@@ -151,17 +151,21 @@ export const RubricGenerator: React.FC = () => {
       <head>
         <meta charset="UTF-8"><title>Rubrik - ${formData.topic}</title>
         <style>
-          @page { size: A4; margin: 2cm; }
-          body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #000; }
+          @page { size: A4; margin: 3cm; } /* 3cm margin */
+          body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; color: #000; }
+          h1, h2, h3, h4, h5, h6 { font-family: 'Times New Roman', serif; color: #000; }
           h1 { font-size: 14pt; font-weight: bold; text-align: center; margin-bottom: 1em; text-transform: uppercase; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; }
+          h2 { font-size: 12pt; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.5em; }
+          h3 { font-size: 12pt; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+          p, li, div, span { margin-bottom: 0.5em; text-align: justify; font-size: 12pt; font-family: 'Times New Roman', serif; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-family: 'Times New Roman', serif; }
+          th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; text-align: left; font-size: 12pt; font-family: 'Times New Roman', serif; }
           th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
         </style>
       </head>
       <body>${contentHtml}</body></html>`;
     try {
-      const blob = await asBlob(htmlString, { orientation: 'portrait', margins: { top: 720, right: 720, bottom: 720, left: 720 } });
+      const blob = await asBlob(htmlString, { orientation: 'portrait', margins: { top: 1701, right: 1701, bottom: 1701, left: 1701 } });
       saveAs(blob, `Rubrik_${formData.topic.replace(/\s+/g, '_')}.docx`);
     } catch (error) { console.error("Export Error", error); }
   };

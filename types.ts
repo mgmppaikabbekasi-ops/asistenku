@@ -139,7 +139,7 @@ export interface IceBreakingFormData {
 
 // --- CONSTANTS FOR DROPDOWNS ---
 export const SUBJECT_OPTIONS = [
-  "Pendidikan Agama Islam", "Pendidikan Pancasila / PPKn", "Bahasa Indonesia", 
+  "Pendidikan Agama Islam", "Baca Tulis al-Quran", "Pendidikan Pancasila / PPKn", "Bahasa Indonesia", 
   "Matematika", "Ilmu Pengetahuan Alam (IPA)", "Ilmu Pengetahuan Sosial (IPS)", 
   "IPAS (SD)", "Bahasa Inggris", "Seni Budaya", "PJOK", "Informatika", 
   "Sejarah", "Geografi", "Ekonomi", "Sosiologi", "Biologi", "Kimia", "Fisika", 
