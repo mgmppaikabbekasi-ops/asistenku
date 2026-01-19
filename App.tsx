@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  const DEFAULT_PIN = 'AsepSaefullahGPAI3CITI';
+  const DEFAULT_PIN = 'AsepSaefullahGhurabaa';
   const PROFILE_IMAGE = 'https://attachment.notion.static.pub/299c8577-c335-430b-930f-b4c489c4458d/Screenshot_2025-02-13_at_16.03.22.png?id=1991e483-e028-80f0-8c22-e19c3666b356&table=block&spaceId=f7480a87-175f-4a0b-801b-9993335e2671&expirationTimestamp=1739520000000&signature=Wq_8zE_oWbW6nB1eW6nB1eW6nB1eW6nB1eW6nB1eW6n';
 
   useEffect(() => {
